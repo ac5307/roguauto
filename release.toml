@@ -1,0 +1,6 @@
+[workspace]
+publish = true
+git_release_enable = true
+changelog_update = true
+semver_check = false
+pr_labels = ["release"]

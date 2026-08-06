@@ -1,0 +1,46 @@
+[package]
+name = "roguauto"
+description = "A lightweight power menu for Wayland compositors supporting wlr-layer-shell."
+version = "1.0.0"
+edition = "2024"
+license = "GPL-3.0-or-later"
+repository = "https://github.com/ac5307/roguauto"
+readme = "README.md"
+exclude = ["Makefile"]
+keywords = ["wayland", "layer-shell", "logout", "power-menu", "daemon"]
+categories = ["command-line-utilities"]
+
+
+[dependencies]
+# For the Wayland-app and rendering:
+smithay-client-toolkit = { version = "0.21" }
+tiny-skia = { version = "0.12" }
+cosmic-text = { version = "0.19" }
+resvg = { version = "0.47" }
+
+# For the daemon and executing power-actions:
+tokio = { version = "1", features = ["rt-multi-thread", "net"] }
+zbus = { version = "5", default-features = false, features = ["tokio"] }
+
+# For reading configuration file and watching:
+serde = { version = "1", features = ["derive"] }
+toml = { version = "1" }
+notify-debouncer-full = { version = "0.7" }
+
+# For parsing the CLI:
+clap = { version = "4", features = ["derive"] }
+
+# For creating new errors:
+thiserror = "2"
+
+
+[[bin]]
+name = "rogu"
+path = "src/main.rs"
+
+
+[profile.release]
+opt-level = 'z'
+lto = true
+strip = true
+codegen-units = 1
