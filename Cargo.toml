@@ -1,7 +1,7 @@
 [package]
 name = "roguauto"
 description = "A lightweight power menu for Wayland compositors supporting wlr-layer-shell."
-version = "1.0.0"
+version = "1.0.1"
 edition = "2024"
 license = "GPL-3.0-or-later"
 repository = "https://github.com/ac5307/roguauto"
