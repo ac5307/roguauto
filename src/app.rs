@@ -356,7 +356,7 @@ impl WaylandApp {
       return None;
     }
 
-    item_at(x, y, self.height, &self.config)
+    item_at(x, y, self.height, self.config())
   }
 
   #[inline(never)]

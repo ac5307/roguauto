@@ -1,9 +1,15 @@
+# Copyright (C) 2026 ac5307
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 CG		?= cargo
 
 .SILENT:
-.PHONY: run build fmt clean rdme ci
+.PHONY: install run build fmt clean rdme ci
 
-# Install the prerequisites to fully use this file:
+# The prerequisites to fully use this file:
+# - Install the Rust toolchain.
+# - Install `GNU make` or some other tooling that allows/has it.
+# - Run `make install` in the project's root directory.
 install:
 	$(CG) install cargo-rdme
 	$(CG) rdme install-rust-toolchain-for-intralinks

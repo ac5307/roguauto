@@ -33,10 +33,11 @@ pub fn startup(
     .enable_io()
     .build()?;
 
-  // Create an event loop for the app.
+  // Create a Calloop event loop.
   let mut event_loop = EventLoop::<WaylandApp>::try_new()?;
   let loop_handle = event_loop.handle();
 
+  // Create a Calloop transmitter and receiver for the app.
   let (event_tx, event_rx) = channel::<AppEvent>();
 
   // Start the daemon.
@@ -83,8 +84,14 @@ pub fn startup(
     Configuration::load(config_location.path())?
   };
 
-  let mut app =
-    WaylandApp::new(globals, &event_queue.handle(), power_handler, config)?;
+  // Create the app.
+  let mut app = WaylandApp::new(
+    globals,
+    &event_queue.handle(),
+    // Give the power-handler and config to the app.
+    power_handler,
+    config,
+  )?;
   loop_handle.insert_source(
     WaylandSource::new(conn, event_queue),
     |_, queue, app| queue.dispatch_pending(app),
@@ -97,6 +104,7 @@ pub fn startup(
     ChannelEvent::Closed => app.running = false,
   })?;
 
+  // Create a Calloop transmitter and receiver for watching the config path.
   let (cfg_tx, cfg_rx) = channel::<ConfigWatchEvent>();
   let _watcher = ConfigWatcher::new(config_location.path(), cfg_tx)?;
   eprintln!("Watching {}", config_location.path().display());

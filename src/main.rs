@@ -36,10 +36,11 @@
 //! The daemon is started with:
 //!
 //! ```text
+//! # A path to a config file can be optionally given.
 //! rogu daemon [-c <file> | --config <file>]
 //! ```
 //!
-//! A second invocation controls the running daemon:
+//! In a second terminal window while the daemon is still running:
 //!
 //! ```text
 //! rogu show
@@ -47,6 +48,10 @@
 //! rogu toggle
 //! rogu quit
 //! ```
+//!
+//! However, normally, you would want to start the daemon as part of your
+//! compositor's startup or autostart processes. And then, bind a keyboard
+//! shortcut to `rogu toggle` and/or the remaining commands.
 //!
 //! # Architecture
 //!

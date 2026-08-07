@@ -33,7 +33,7 @@ impl ConfigLocation {
   pub fn find(
     explicit: Option<&(impl AsRef<Path> + ?Sized)>,
   ) -> Result<Self, ConfigPathError> {
-    // Check, If a given path was explicitly given.
+    // Check, If a path was explicitly given.
     if let Some(path) = explicit {
       let path = path.as_ref();
       if !path.is_file() {
