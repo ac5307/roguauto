@@ -76,7 +76,12 @@ pub fn startup(
       },
     }
   );
-  let config = Configuration::load(config_location.path())?;
+  let config = if config_location.source() == ConfigSource::Default {
+    // Default source means the file was not found.
+    Configuration::default()
+  } else {
+    Configuration::load(config_location.path())?
+  };
 
   let mut app =
     WaylandApp::new(globals, &event_queue.handle(), power_handler, config)?;
