@@ -53,6 +53,49 @@
 //! compositor's startup or autostart processes. And then, bind a keyboard
 //! shortcut to `rogu toggle` and/or the remaining commands.
 //!
+//! # Configuration
+//!
+//! The app will try looking for a config file in 3 locations:
+//! - the path given when starting the daemon,
+//! - `$XDG_CONFIG_HOME/roguauto/config.toml`,
+//! - `$HOME/.config/roguauto/config.toml`.
+//!
+//! Below is an example of what could go inside a configuration file:
+//!
+//! ```toml
+//! [window]
+//! background = "#192264"
+//! height = 160
+//! padding = 18
+//! corner_radius = 25.0
+//!
+//! [item]
+//! background = "#a1a4a9"
+//! selected_background = "#a0d0f0"
+//! width = 196
+//! gap = 8
+//! corner_radius = 10.5
+//!
+//! [text]
+//! color = "#2d303a"
+//! selected_color = "#f1f4f9"
+//! font_family = "JetBrains Mono"      # use fonts that are installed on your machine.
+//! font_size = 20
+//! font_weight = 300
+//! line_height = 25.0
+//!
+//! [icon]
+//! size = 49
+//! label_gap = 21.0
+//!
+//! [behavior]
+//! close_after_action = true           # default value is already true.
+//! ```
+//!
+//! The app itself has built-in defaults. Omitting any of the fields shown above
+//! will use the default value for that particular field. Hence, if a config file
+//! is not found, the defaults would all be used.
+//!
 //! # Architecture
 //!
 //! The main thread runs a Calloop event loop responsible for:
@@ -76,8 +119,8 @@
 //! # Rendering
 //!
 //! The menu is rendered using shared-memory buffers with [`Tiny Skia`](tiny_skia).
-//! [`Cosmic Text`](cosmic_text) performs text shaping and glyph rasterization, while
-//! embedded SVG assets provide scalable action icons.
+//! Text shaping and glyph rasterization are performed using
+//! [`Cosmic Text`](cosmic_text), while embedded SVG assets provide scalable action icons.
 //!
 //! The renderer does not use GTK and therefore does not inherit the
 //! user's GTK theme. Colors, dimensions, typography, spacing, and corner

@@ -37,7 +37,7 @@ pub struct Configuration {
 }
 
 impl Configuration {
-  /// Attempts to load a configuration file using the given `path`.
+  /// Attempts to load the configuration file from the given `path`.
   pub fn load(
     path: &(impl AsRef<Path> + ?Sized),
   ) -> Result<Self, ConfigFileError> {
@@ -55,6 +55,7 @@ impl Configuration {
     })
   }
 
+  /// Calculate the window's width using pre-existing values.
   pub fn window_width(&self) -> u32 {
     let item_count = crate::power::PowerAction::ALL.len() as u32;
 

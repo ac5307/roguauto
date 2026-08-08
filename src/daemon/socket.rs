@@ -5,6 +5,10 @@ use crate::{env, io, Path};
 
 const SOCKET_FILE_NAME: &str = "control.sock";
 
+/// Returns the path to the daemon socket.
+///
+/// Returns an error if the XDG_RUNTIME_DIR environment variable
+/// is not set.
 pub fn socket_path() -> io::Result<Box<Path>> {
   use io::{Error, ErrorKind};
   let dir = env::var_os("XDG_RUNTIME_DIR")

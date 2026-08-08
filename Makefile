@@ -34,7 +34,7 @@ clean:
 
 
 rdme:
-	$(CG) rdme
+	$(CG) rdme --force
 
 
 ci:

@@ -124,11 +124,9 @@ impl Drop for DaemonServer {
 fn bind_socket(
   socket_path: &Path,
 ) -> Result<TokioUnixDatagram, DaemonServerError> {
-  use io::{Error, ErrorKind};
-
   let parent = socket_path.parent().ok_or_else(|| {
-    DaemonServerError::PrepareDirectory(Error::new(
-      ErrorKind::InvalidInput,
+    DaemonServerError::PrepareDirectory(io::Error::new(
+      io::ErrorKind::InvalidInput,
       "daemon socket has no parent directory",
     ))
   })?;
@@ -144,7 +142,7 @@ fn bind_socket(
   let socket = match TokioUnixDatagram::bind(socket_path) {
     Ok(socket) => socket,
     Err(err) => match err.kind() {
-      ErrorKind::AddrInUse => {
+      io::ErrorKind::AddrInUse => {
         if existing_daemon_responds(socket_path) {
           return Err(DaemonServerError::AlreadyRunning);
         }
