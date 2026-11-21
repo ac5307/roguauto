@@ -1,7 +1,4 @@
-// Copyright (C) 2026 ac5307
-// SPDX-License-Identifier: GPL-3.0-or-later
-
-use crate::{env, Path};
+use std::{env, path::Path};
 
 const CONFIG_FILE_NAME: &str = "config.toml";
 
@@ -30,6 +27,7 @@ pub struct ConfigLocation {
 }
 
 impl ConfigLocation {
+  /// Resolves the selected settings path and its startup source.
   pub fn find(
     explicit: Option<&(impl AsRef<Path> + ?Sized)>,
   ) -> Result<Self, ConfigPathError> {
@@ -94,10 +92,12 @@ impl ConfigLocation {
     }
   }
 
+  /// Borrows the selected path for loading and watching.
   pub fn path(&self) -> &Path {
     self.path.as_ref()
   }
 
+  /// Reports how the settings path was selected.
   pub fn source(&self) -> ConfigSource {
     self.source
   }

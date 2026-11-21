@@ -1,6 +1,3 @@
-// Copyright (C) 2026 ac5307
-// SPDX-License-Identifier: GPL-3.0-or-later
-
 //! **Roguauto** is a lightweight and configurable power-menu daemon for Wayland, written in Rust.
 //!
 //! The application runs as a persistent per-user daemon and displays a native
@@ -28,8 +25,8 @@
 //! GNOME Shell does not currently expose `wlr-layer-shell`, so it's not supported.
 //!
 //! Power operations additionally require **Linux**, a working system D-Bus,
-//! and systemd-logind. Some actions may require authorization through
-//! PolicyKit.
+//! and systemd-logind. Some actions may require permission from the system
+//! authorization service.
 //!
 //! # Usage
 //!
@@ -96,69 +93,65 @@
 //! will use the default value for that particular field. Hence, if a config file
 //! is not found, the defaults would all be used.
 //!
+//! Window height, item width, and icon size must be greater than zero. Font
+//! size must be finite and at least one pixel. Line height must be finite and
+//! at least the font size. Spacing and corner radii must be finite and
+//! nonnegative. The font family must contain a non-whitespace character.
+//! Colors accept `#RRGGBB` and `#RRGGBBAA`.
+//!
+//! A menu frame may use at most 64 MiB of pixel storage. The icon budget is
+//! also 64 MiB and includes both sets of tinted icons during a reload and the
+//! temporary mask. Invalid settings stop startup or leave the current settings
+//! active during a reload. Removing the file restores defaults.
+//!
 //! # Architecture
 //!
-//! The main thread runs a Calloop event loop responsible for:
+//! The menu follows Model–View–Controller. The domain is the model. It owns
+//! validated settings, selection, and action progress. The controller forwards
+//! typed commands to the model and returns an instruction for the host. The
+//! view borrows settings and selection after each update and uses one layout
+//! for both drawing and pointer hit testing.
 //!
-//! - Wayland and Smithay Client Toolkit events,
-//! - keyboard and pointer input,
-//! - shared-memory buffer management,
-//! - rendering,
-//! - configuration reload notifications.
+//! The Wayland host runs on the main Calloop event loop. It translates input
+//! into commands and owns the layer surface and its shared-memory buffers.
+//! A Tokio runtime receives daemon socket messages and runs power requests
+//! through [`zbus`]. A Calloop channel delivers those events to the main thread.
+//! The config file adapter reads TOML and supplies validated values. Native file
+//! notifications restart a one-shot timer so a burst of writes reloads once.
+//! The entry point, CLI, runtime, and Wayland host live directly under `src`,
+//! alongside the `domain`, `controller`, and `view` directories.
 //!
-//! A Tokio runtime handles asynchronous work such as:
+//! ## Rendering
 //!
-//! - systemd-logind calls through [`zbus`],
-//! - daemon IPC,
-//! - other background I/O.
-//!
-//! Results from asynchronous tasks are returned to the main thread
-//! through a Calloop channel. Wayland objects remain confined to the
-//! Calloop thread.
-//!
-//! # Rendering
-//!
-//! The menu is rendered using shared-memory buffers with [`Tiny Skia`](tiny_skia).
-//! Text shaping and glyph rasterization are performed using
-//! [`Cosmic Text`](cosmic_text), while embedded SVG assets provide scalable action icons.
-//!
-//! The renderer does not use GTK and therefore does not inherit the
-//! user's GTK theme. Colors, dimensions, typography, spacing, and corner
-//! radii are controlled by the application's configuration.
+//! The view draws shapes, labels, and action icons through a drawing interface.
+//! A [`Tiny Skia`](tiny_skia) adapter paints the frame, and the Wayland host
+//! copies the pixels into a buffer shared with the compositor.
+//! [`fontdb`] finds installed fonts, and [`Swash`](swash) shapes the
+//! single-line labels and rasterizes their glyphs.
+//! The view scales and tints the bundled PNG icons as needed.
+//! Configuration controls color, dimensions, typography, spacing, and corner
+//! radii.
 
 #![allow(clippy::too_many_arguments)]
 
-mod daemon {
-  pub mod socket;
-  pub mod command;
-  pub mod ipc;
-}
-mod config {
-  pub mod locate;
-  pub mod deserialize;
-  pub mod watch;
-}
-
-mod app;
-mod async_event;
-
-mod power;
-
-mod render;
+mod controller;
+mod domain;
 mod cli;
-mod init;
+mod runtime;
+mod wayland;
+mod view;
 
-use std::{env, fs, io, process, path::Path};
+use std::process;
 
 const NAMESPACE: &str = env!("CARGO_PKG_NAME");
 
 fn main() -> process::ExitCode {
   use cli::{parse_cli, RunMode};
-  use init::startup;
-  use daemon::{socket::socket_path, ipc::send_command};
+  use controller::ipc::{send_command, socket_path};
+  use runtime::run_daemon;
 
   let run = || match parse_cli() {
-    RunMode::Daemon { config_path } => startup(config_path.as_deref()),
+    RunMode::Daemon { config_path } => run_daemon(config_path.as_deref()),
     RunMode::Send(command) => {
       send_command(&socket_path()?, command)?;
       Ok(())

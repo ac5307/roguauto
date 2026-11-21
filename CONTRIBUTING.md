@@ -15,8 +15,8 @@ Please review [the file](Makefile) itself if chosen to do so.
 
 ## Licensing
 
-By submitting a contribution, you agree that your work may be distributed
-under the same terms as the project (GNU GPL v3.0 or later).
+Contributors agree to allow distribution of their submissions under the
+project's MIT License.
 
 ## Conduct
 

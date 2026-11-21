@@ -1,17 +1,17 @@
-// Copyright (C) 2026 ac5307
-// SPDX-License-Identifier: GPL-3.0-or-later
+//! Unix datagram client and background command listener.
 
+use smithay_client_toolkit::reexports::calloop::channel::Sender;
 use tokio::{
   net::UnixDatagram as TokioUnixDatagram, runtime::Handle, task::JoinHandle,
 };
 
-use smithay_client_toolkit::reexports::calloop::channel::Sender;
-
-use std::os::unix::{net::UnixDatagram as StdUnixDatagram, fs::PermissionsExt};
-
-use crate::{
-  fs, io, Path, async_event::AppEvent, daemon::command::DaemonCommand,
+use std::{
+  fs, io,
+  path::Path,
+  os::unix::{fs::PermissionsExt, net::UnixDatagram as StdUnixDatagram},
 };
+
+use crate::controller::{ipc::DaemonCommand, app_event::AppEvent};
 
 const PRIVATE_DIRECTORY_MODE: u32 = 0o700;
 const PRIVATE_SOCKET_MODE: u32 = 0o600;
@@ -20,8 +20,9 @@ const PRIVATE_SOCKET_MODE: u32 = 0o600;
 /// be rejected instead of being silently truncated to one byte.
 const COMMAND_BUFFER_SIZE: usize = 2;
 
+/// Describes a failure to start the daemon command listener.
 #[derive(Debug, thiserror::Error)]
-pub enum DaemonServerError {
+pub(crate) enum DaemonServerError {
   #[error("another daemon instance is already running")]
   AlreadyRunning,
 
@@ -41,13 +42,14 @@ pub enum DaemonServerError {
 /// Owns the background server task and socket path.
 ///
 /// Dropping this value aborts the Tokio task and removes the socket file.
-pub struct DaemonServer {
+pub(crate) struct DaemonServer {
   task: JoinHandle<()>,
   socket_path: Box<Path>,
 }
 
 impl DaemonServer {
-  pub async fn start(
+  /// Binds the control socket and forwards valid commands to the main loop.
+  pub(crate) async fn start(
     runtime: &Handle,
     socket_path: Box<Path>,
     event_tx: Sender<AppEvent>,
@@ -58,7 +60,6 @@ impl DaemonServer {
       let mut buf = [0u8; COMMAND_BUFFER_SIZE];
 
       loop {
-        // Length of the command received.
         let length = match socket.recv_from(&mut buf).await {
           Ok((len, _addr)) => len,
           Err(err) => {
@@ -66,7 +67,6 @@ impl DaemonServer {
           },
         };
 
-        // Each command should be one byte.
         if length != 1 {
           eprintln!(
             "Ignoring malformed daemon command containing {length} bytes"
@@ -85,7 +85,7 @@ impl DaemonServer {
           break;
         }
 
-        // Successfully sending a `quit` command also stops the daemon.
+        // Stop accepting commands once Quit reaches the main loop.
         if cmd == DaemonCommand::Quit {
           break;
         }
@@ -94,17 +94,11 @@ impl DaemonServer {
 
     Ok(Self { task, socket_path })
   }
-
-  /// Aborts the Tokio task.
-  #[inline]
-  pub fn abort(&self) {
-    self.task.abort();
-  }
 }
 
 impl Drop for DaemonServer {
   fn drop(&mut self) {
-    self.abort();
+    self.task.abort();
 
     match fs::remove_file(&self.socket_path) {
       Ok(()) => {},
@@ -121,6 +115,7 @@ impl Drop for DaemonServer {
   }
 }
 
+/// Binds the private socket, recovering a stale path when necessary.
 fn bind_socket(
   socket_path: &Path,
 ) -> Result<TokioUnixDatagram, DaemonServerError> {
@@ -143,7 +138,7 @@ fn bind_socket(
     Ok(socket) => socket,
     Err(err) => match err.kind() {
       io::ErrorKind::AddrInUse => {
-        if existing_daemon_responds(socket_path) {
+        if socket_accepts_datagrams(socket_path) {
           return Err(DaemonServerError::AlreadyRunning);
         }
 
@@ -165,7 +160,8 @@ fn bind_socket(
   Ok(socket)
 }
 
-fn existing_daemon_responds(socket_path: &Path) -> bool {
+/// Probes the socket by sending a ping datagram.
+fn socket_accepts_datagrams(socket_path: &Path) -> bool {
   let Ok(probe) = StdUnixDatagram::unbound() else {
     return false;
   };
@@ -175,6 +171,7 @@ fn existing_daemon_responds(socket_path: &Path) -> bool {
     .is_ok()
 }
 
+/// Removes an old socket path that can no longer receive commands.
 fn remove_stale_socket(socket_path: &Path) -> Result<(), DaemonServerError> {
   match fs::remove_file(socket_path) {
     Ok(_) => Ok(()),
@@ -185,9 +182,8 @@ fn remove_stale_socket(socket_path: &Path) -> Result<(), DaemonServerError> {
   }
 }
 
-/// A function for the client-sde to send a [`command`](DaemonCommand) to
-/// the given `socket_path`.
-pub fn send_command(
+/// Sends one encoded command to the daemon's control socket.
+pub(crate) fn send_command(
   socket_path: &(impl AsRef<Path> + ?Sized),
   cmd: DaemonCommand,
 ) -> io::Result<()> {

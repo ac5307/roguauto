@@ -1,11 +1,10 @@
-// Copyright (C) 2026 ac5307
-// SPDX-License-Identifier: GPL-3.0-or-later
+//! One-byte requests accepted by the daemon's control socket.
 
 use std::fmt;
 
 /// Commands accepted by the running daemon.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum DaemonCommand {
+pub(crate) enum DaemonCommand {
   /// Verify that a daemon is listening.
   Ping,
 
@@ -30,7 +29,7 @@ impl DaemonCommand {
   const QUIT: u8 = b'Q';
 
   /// Encode the command as its one-byte wire representation.
-  pub const fn encode(self) -> u8 {
+  pub(crate) const fn encode(self) -> u8 {
     match self {
       Self::Ping => Self::PING,
       Self::Show => Self::SHOW,
@@ -41,7 +40,7 @@ impl DaemonCommand {
   }
 
   /// Decode one command byte.
-  pub const fn decode(byte: u8) -> Option<Self> {
+  pub(crate) const fn decode(byte: u8) -> Option<Self> {
     match byte {
       Self::PING => Some(Self::Ping),
       Self::SHOW => Some(Self::Show),
@@ -53,7 +52,7 @@ impl DaemonCommand {
   }
 
   /// Returns the name of the command.
-  pub const fn name(self) -> &'static str {
+  const fn name(self) -> &'static str {
     match self {
       Self::Ping => "ping",
       Self::Show => "show",

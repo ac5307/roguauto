@@ -1,15 +1,13 @@
-// Copyright (C) 2026 ac5307
-// SPDX-License-Identifier: GPL-3.0-or-later
+//! Location of the current user's control socket.
 
-use crate::{env, io, Path};
+use std::{env, io, path::Path};
 
 const SOCKET_FILE_NAME: &str = "control.sock";
 
-/// Returns the path to the daemon socket.
+/// Resolves the daemon socket within the user's runtime directory.
 ///
-/// Returns an error if the XDG_RUNTIME_DIR environment variable
-/// is not set.
-pub fn socket_path() -> io::Result<Box<Path>> {
+/// Returns an error if `XDG_RUNTIME_DIR` is missing or empty.
+pub(crate) fn socket_path() -> io::Result<Box<Path>> {
   use io::{Error, ErrorKind};
   let dir = env::var_os("XDG_RUNTIME_DIR")
     .filter(|val| !val.is_empty())

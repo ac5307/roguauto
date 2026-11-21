@@ -1,8 +1,6 @@
-// Copyright (C) 2026 ac5307
-// SPDX-License-Identifier: GPL-3.0-or-later
+use crate::{domain::PowerAction, controller::ipc::DaemonCommand};
 
-use crate::{daemon::command::DaemonCommand, power::PowerAction};
-
+/// Events delivered to the main event loop by background adapters.
 #[derive(Debug)]
 pub enum AppEvent {
   /// A command received through the daemon socket

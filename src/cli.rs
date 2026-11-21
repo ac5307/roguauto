@@ -1,18 +1,17 @@
-// Copyright (C) 2026 ac5307
-// SPDX-License-Identifier: GPL-3.0-or-later
-
 //! The command-line is parsed using [`clap`], but the implementation details are not exposed.
 //! Instead, the [`parse_cli()`] function, which returns a [`RunMode`], is all that's necessary.
 
 use clap::{Parser, Subcommand};
 
-use crate::{Path, daemon::command::DaemonCommand};
+use std::path::Path;
+
+use crate::controller::ipc::DaemonCommand;
 
 #[derive(Parser, Debug, Default)]
 #[command(about, long_about = None, version, propagate_version = true)]
 struct Cli {
   #[command(subcommand)]
-  pub command: CliCommand,
+  command: CliCommand,
 }
 
 #[derive(Subcommand, Debug)]

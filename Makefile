@@ -1,6 +1,3 @@
-# Copyright (C) 2026 ac5307
-# SPDX-License-Identifier: GPL-3.0-or-later
-
 CG		?= cargo
 
 .SILENT:
